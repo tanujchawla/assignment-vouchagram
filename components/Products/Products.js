@@ -1,65 +1,24 @@
 import React, { Component } from 'react';
-import axios from 'axios';
 import Pagination from '../Pagination/Pagination';
 import { Alert, Spinner, Table } from 'react-bootstrap';
 import Layout from '../Layout';
-import dummyApiResponse from './dummyApiResponse';
+import Router from 'next/router';
 
 class Products extends Component {
 
     state = {
-        products : [],
-        loading : false,
-        error : null,
-        totalPages : 0,
-        pageNo : 1,
         tillPage : 5,
         maxPageItems : 5
     }
 
-    componentDidMount() {
-        this.fetchProducts(this.state.pageNo, this.props.categoryId);
-    }
-
-    alertClickHandler = () => {
-        this.setState({
-            error : null
-        })
-    }
-
-    fetchProducts(pageNo, categoryId) {
-
-        this.setState({ loading : true });
-        
-        axios.get(`https://testing.pogo91.com/api/online-store/category/product?store_prefix=cake-shop&page=${pageNo}&category_id=${categoryId}`)
-            .then(res => {
-                let products = res && res.data && res.data.products || [];
-                let totalPages = res && res.data && res.data.num_pages || 0;
-                this.setState({
-                    loading : false,
-                    products : products,
-                    totalPages : totalPages,
-                    error : null
-                });
-            })
-            .catch(error => {
-                // fetching dummy response as API is giving CORS error
-                let dummyRes = dummyApiResponse;
-
-                let products = dummyRes && dummyRes && dummyRes.products || [];
-                let totalPages = dummyRes && dummyRes && dummyRes.num_pages || 0;
-                this.setState({
-                    loading : false,
-                    products : products,
-                    totalPages : totalPages,
-                    error : null
-                });
-            })
-    }
-
     handlePageSelect = (number) => {
-        this.setState({ pageNo : number });
-        this.fetchProducts(number, this.props.categoryId);
+        Router.push({
+            pathname : '/category/products',
+            query : {
+                pageNo : number,
+                categoryId : this.props.categoryId
+            }
+        });
     }
 
     handlePrevNext = (action) => {
@@ -75,14 +34,12 @@ class Products extends Component {
 
     render() {
 
-        let spinner = this.state.loading ? <Spinner style={{ position : 'fixed', top : '50%', left : '50%' }} animation="border" /> : null;
-
-        let errorAlert = this.state.error ? 
-            <Alert variant="danger" onClick={this.alertClickHandler} style={{margin : '20px', width : '20%', cursor : 'pointer'}} >
+        let errorAlert = this.props.error ? 
+            <Alert variant="danger" style={{margin : '20px', width : '20%'}} >
                 <strong>x</strong> An error occured!
             </Alert> : null;
 
-        let tableData = this.state.products.map(product => {
+        let tableData = this.props.products.map(product => {
             let stock = product['price_stock'];
 
             if(stock.length) {
@@ -110,7 +67,13 @@ class Products extends Component {
             }
         })
 
-        let productTable = !this.state.error ? (
+        if(this.props.products.length === 0) {
+            tableData = <tr>
+                <td colSpan="5" style={{ color : 'blue', textAlign : 'center' }} >No Products Found</td>
+            </tr>
+        }
+
+        let productTable = !this.props.error ? (
             <Table striped bordered hover style={{width : '90%', marginLeft : '40px', marginTop : '30px'}}>
                 <thead>
                     <tr>
@@ -130,12 +93,11 @@ class Products extends Component {
 
         return <Layout content={(
             <React.Fragment>
-                {spinner}
                 {errorAlert}
                 {productTable}
                 <Pagination
-                    totalPages={this.state.totalPages}
-                    pageNo={this.state.pageNo}
+                    totalPages={this.props.totalPages}
+                    pageNo={this.props.pageNo}
                     tillPage={this.state.tillPage}
                     maxPageItems={this.state.maxPageItems}
                     pageSelectHandler={this.handlePageSelect}
